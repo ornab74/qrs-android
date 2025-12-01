@@ -8,9 +8,10 @@ android.numeric_version = 777
 source.dir = .
 source.include_exts = py,png,jpg,jpeg,ttf,otf,kv,atlas,gguf,aes,db,txt,md,json,wav
 source.exclude_dirs = .git,.buildozer,bin,__pycache__,.github,.venv
+source.exclude_patterns = *.pyc,*.pyo,*.log,tmp.db,*.bak
 
-# NEW: Python 3.12.7 + unpinned numpy = no more errors
-requirements = python3==3.12.7,kivy==2.3.0,kivymd==1.2.0,numpy,pyjnius,android,psutil,httpx,aiosqlite,cryptography==42.0.8,pennylane==0.36.0,pennylane-lightning==0.36.0,llama-cpp-python==0.2.85
+# Fixed: Revert to stable Python 3.11.9 (p4a supported; avoids host/target version mismatch)
+requirements = python3==3.11.9,kivy==2.3.0,kivymd==1.2.0,numpy,pyjnius,android,psutil,httpx,aiosqlite,cryptography==42.0.8,pennylane==0.36.0,pennylane-lightning==0.36.0,llama-cpp-python==0.2.85
 android.pip_install_pre = cryptography==42.0.8,pennylane-lightning==0.36.0
 
 orientation = portrait
@@ -27,15 +28,14 @@ android.archs = arm64-v8a, armeabi-v7a
 
 android.permissions = INTERNET,ACCESS_FINE_LOCATION,ACCESS_COARSE_LOCATION,FOREGROUND_SERVICE,FOREGROUND_SERVICE_DATA_SYNC
 
-# Critical line – stable branch has no broken 3.14 patches
 p4a.branch = master
-
 android.accept_sdk_license = True
 android.private_storage = False
 android.allow_backup = False
 android.extra_args = --enable-preview --ignore-setup-py-errors
 
 log_level = 2
+android.logcat_filters = *:S python:D
 
 [buildozer]
 log_level = 2
