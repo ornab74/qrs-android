@@ -20,7 +20,7 @@ icon.filename = %(source.dir)s/data/icon.png
 android.api = 35
 android.minapi = 24
 android.sdk = 35
-android.ndk = 28c
+android.ndk = 25
 android.release_artifact = aab
 android.archs = arm64-v8a, armeabi-v7a
 
