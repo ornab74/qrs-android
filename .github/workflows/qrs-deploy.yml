@@ -55,30 +55,28 @@ jobs:
           PY
           rm -f models/model.gguf
 
-      - name: Cache full .buildozer (p4a + NDK + SDK)
+      - name: Cache full .buildozer (includes NDK zip for fast unzip)
         id: cache
         uses: actions/cache@v4
         with:
           path: .buildozer
-          key: buildozer-full-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}-v23  # Bumped for ndk_path
+          key: buildozer-full-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}-v24  # Bumped for zip placement
 
-      - name: Pre-download NDK r28c (exact match to p4a rec; fixes urllib crash)
+      - name: Pre-download NDK r28c zip (exact path for Buildozer unzip; fixes path crash)
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          # Extract to Buildozer's expected path (matches android.ndk_path)
-          mkdir -p ~/.buildozer/android/platform/
-          wget --tries=3 --timeout=30 -q https://dl.google.com/android/repository/android-ndk-r28c-linux.zip -O ndk.zip || exit 1
-          unzip -q ndk.zip -d ~/.buildozer/android/platform/
-          rm ndk.zip
-          echo "NDK r28c pre-downloaded to ~/.buildozer/android/platform/android-ndk-r28c"
+          mkdir -p ~/.buildozer/android/platform
+          # Download zip to Buildozer's expected location (no extract; let it unzip)
+          wget --tries=3 --timeout=30 -q https://dl.google.com/android/repository/android-ndk-r28c-linux.zip -O ~/.buildozer/android/platform/android-ndk-r28c-linux.zip || exit 1
+          echo "NDK r28c zip pre-downloaded to ~/.buildozer/android/platform/android-ndk-r28c-linux.zip"
 
-      - name: Update Buildozer (detects pre-downloaded NDK via ndk_path)
+      - name: Update Buildozer (triggers unzip from pre-downloaded zip)
         run: |
-          buildozer android update  # Initializes without download (path set in spec)
+          buildozer android update  # Detects zip, unzips to android-ndk-r28c, initializes p4a
 
       - name: Build Release AAB
         run: |
-          buildozer -v android release  # Uses pre-downloaded NDK; no urllib call
+          buildozer -v android release  # Uses extracted NDK; no downloads
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
