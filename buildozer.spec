@@ -34,8 +34,7 @@ icon.filename = %(source.dir)s/data/icon.png
 android.api = 35
 android.minapi = 24
 android.sdk = 35
-android.ndk = 28c
-android.ndk_path = ~/.buildozer/android/platform/android-ndk-r28c  # Points to pre-downloaded NDK (bypasses urllib)
+android.ndk = 28c  # Matches pre-downloaded zip (Buildozer unzips it)
 android.release_artifact = aab
 android.archs = arm64-v8a, armeabi-v7a
 
