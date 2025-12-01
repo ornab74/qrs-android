@@ -24,14 +24,14 @@ android.ndk = 28c
 android.release_artifact = aab
 android.archs = arm64-v8a, armeabi-v7a
 
-android.permissions = INTERNET,ACCESS_FINE_LOCATION,ACCESS_COARSE_LOCATION,FOREGROUND_SERVICE,FOREGROUND_SERVICE_DATA_SYNC
+android.permissions = ACCESS_FINE_LOCATION,ACCESS_COARSE_LOCATION,FOREGROUND_SERVICE,FOREGROUND_SERVICE_DATA_SYNC
+android.block_network_permissions = True
 
+android.add_compile_options = -DSDL_SENSOR_DISABLED=1
 p4a.branch = master
 android.accept_sdk_license = True
 android.private_storage = False
 android.allow_backup = False
-
-android.add_compile_options = -DSDL_SENSOR_DISABLED=1
 
 log_level = 2
 
