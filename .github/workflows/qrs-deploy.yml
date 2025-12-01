@@ -55,31 +55,36 @@ jobs:
           PY
           rm -f models/model.gguf
 
-      - name: Cache .buildozer (including python-for-android + NDK)
-        uses: actions/cache@v4
+      - name: Cache full .buildozer (p4a + NDK)
         id: cache
+        uses: actions/cache@v4
         with:
           path: .buildozer
-          key: buildozer-full-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}-v21
+          key: buildozer-full-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}-v22  # Bumped for NDK change
 
-      - name: Download NDK r27c (only if full cache miss)
+      - name: Pre-download NDK r28c (matches p4a recommendation; fixes urllib bug)
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           mkdir -p ~/.buildozer/android/platform
-          wget -q https://dl.google.com/android/repository/android-ndk-r27c-linux.zip
-          unzip -q android-ndk-r27c-linux.zip -d ~/.buildozer/android/platform/
-          rm android-ndk-r27c-linux.zip
+          # Retry wget for CI flakiness
+          wget --tries=3 --timeout=30 -q https://dl.google.com/android/repository/android-ndk-r28c-linux.zip -O ndk.zip || exit 1
+          unzip -q ndk.zip -d ~/.buildozer/android/platform/
+          rm ndk.zip
+          echo "NDK r28c extracted"
 
-      - name: Build Release AAB (no clean on first run!)
+      - name: Update Buildozer (detects pre-downloaded NDK)
         run: |
-          export ANDROID_NDK_HOME=~/.buildozer/android/platform/android-ndk-r27c
-          buildozer -v android release
-          # After first successful build, future runs can safely use clean:
-          # buildozer android clean && buildozer -v android release
+          export ANDROID_NDK_HOME=~/.buildozer/android/platform/android-ndk-r28c
+          buildozer android update  # Initializes p4a & verifies NDK (no redownload)
+
+      - name: Build Release AAB
+        run: |
+          export ANDROID_NDK_HOME=~/.buildozer/android/platform/android-ndk-r28c
+          buildozer -v android release  # Now uses pre-downloaded NDK
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
-        with:
+        with: 
           name: qrs-release-aab
           path: bin/*.aab
 
