@@ -21,7 +21,7 @@ icon.filename = %(source.dir)s/data/icon.png
 android.api = 35
 android.minapi = 24
 android.sdk = 35
-android.ndk = 28c  # Kept r28c (no downgrade)
+android.ndk = 28c
 android.release_artifact = aab
 android.archs = arm64-v8a, armeabi-v7a
 
@@ -31,9 +31,8 @@ p4a.branch = master
 android.accept_sdk_license = True
 android.private_storage = False
 android.allow_backup = False
-android.extra_args = --enable-preview --ignore-setup-py-errors
 
-# Fixed: Use sdl2_gradle bootstrap (patches SDL2 for newer NDKs, avoids ALooper_pollAll deprecation)
+# This is the magic line — fixes ALooper_pollAll without downgrading NDK
 bootstrap = sdl2_gradle
 
 log_level = 2
