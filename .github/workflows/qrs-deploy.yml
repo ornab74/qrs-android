@@ -55,36 +55,34 @@ jobs:
           PY
           rm -f models/model.gguf
 
-      - name: Cache full .buildozer (p4a + NDK)
+      - name: Cache full .buildozer (p4a + NDK + SDK)
         id: cache
         uses: actions/cache@v4
         with:
           path: .buildozer
-          key: buildozer-full-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}-v22  # Bumped for NDK change
+          key: buildozer-full-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}-v23  # Bumped for ndk_path
 
-      - name: Pre-download NDK r28c (matches p4a recommendation; fixes urllib bug)
+      - name: Pre-download NDK r28c (exact match to p4a rec; fixes urllib crash)
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          mkdir -p ~/.buildozer/android/platform
-          # Retry wget for CI flakiness
+          # Extract to Buildozer's expected path (matches android.ndk_path)
+          mkdir -p ~/.buildozer/android/platform/
           wget --tries=3 --timeout=30 -q https://dl.google.com/android/repository/android-ndk-r28c-linux.zip -O ndk.zip || exit 1
           unzip -q ndk.zip -d ~/.buildozer/android/platform/
           rm ndk.zip
-          echo "NDK r28c extracted"
+          echo "NDK r28c pre-downloaded to ~/.buildozer/android/platform/android-ndk-r28c"
 
-      - name: Update Buildozer (detects pre-downloaded NDK)
+      - name: Update Buildozer (detects pre-downloaded NDK via ndk_path)
         run: |
-          export ANDROID_NDK_HOME=~/.buildozer/android/platform/android-ndk-r28c
-          buildozer android update  # Initializes p4a & verifies NDK (no redownload)
+          buildozer android update  # Initializes without download (path set in spec)
 
       - name: Build Release AAB
         run: |
-          export ANDROID_NDK_HOME=~/.buildozer/android/platform/android-ndk-r28c
-          buildozer -v android release  # Now uses pre-downloaded NDK
+          buildozer -v android release  # Uses pre-downloaded NDK; no urllib call
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
-        with: 
+        with:
           name: qrs-release-aab
           path: bin/*.aab
 
