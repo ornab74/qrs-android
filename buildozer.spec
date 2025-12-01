@@ -21,7 +21,7 @@ icon.filename = %(source.dir)s/data/icon.png
 android.api = 35
 android.minapi = 24
 android.sdk = 35
-android.ndk = 28c
+android.ndk = 28c  # Kept r28c (no downgrade)
 android.release_artifact = aab
 android.archs = arm64-v8a, armeabi-v7a
 
@@ -31,9 +31,10 @@ p4a.branch = master
 android.accept_sdk_license = True
 android.private_storage = False
 android.allow_backup = False
+android.extra_args = --enable-preview --ignore-setup-py-errors
 
-# This is the magic line — fixes ALooper_pollAll without downgrading NDK
-bootstrap = sdl2_gradle
+# Fixed: Custom patch for SDL2 sensor (replaces ALooper_pollAll with pollOnce; enables sensors)
+android.add_src = patches/SDL_androidsensor.c
 
 log_level = 2
 android.logcat_filters = *:S python:D
