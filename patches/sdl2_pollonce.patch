@@ -1,0 +1,13 @@
+diff --git a/src/sensor/android/SDL_androidsensor.c b/src/sensor/android/SDL_androidsensor.c
+index 4d8c7f5..e9a1b2d 100644
+--- a/src/sensor/android/SDL_androidsensor.c
++++ b/src/sensor/android/SDL_androidsensor.c
+@@ -161,7 +161,7 @@ static void Android_SensorThread(void *data)
+     while (!g_thread_quit) {
+         SDL_SemWait(g_sem);
+
+-        if (ALooper_pollAll(0, NULL, &events, (void **)&source) == LOOPER_ID_USER) {
++        if (ALooper_pollOnce(0, NULL, &events, (void **)&source) == LOOPER_ID_USER) {
+             if (source) {
+                 ASensorEvent event;
+                 while (ASensorEventQueue_getEvents(sensorQueue, &event, 1) > 0) {
