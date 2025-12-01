@@ -59,19 +59,26 @@ jobs:
           rm -f models/model.gguf
 
       - name: Cache Buildozer & NDK
+        id: cache
         uses: actions/cache@v4
         with:
           path: |
             .buildozer
             ~/.buildozer/android/platform/android-ndk-r27c
-          key: buildozer-ndk-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}-v19
+          key: buildozer-ndk-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}-v20  # Bumped to force refresh
 
       - name: Download NDK r27c (if cache miss)
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
+          # Create parent dir first (fixes unzip extraction error)
+          mkdir -p ~/.buildozer/android/platform/
+          echo "Created platform dir: ~/.buildozer/android/platform/"
+          
+          # Download & extract
           wget -q https://dl.google.com/android/repository/android-ndk-r27c-linux.zip
           unzip -q android-ndk-r27c-linux.zip -d ~/.buildozer/android/platform/
           rm android-ndk-r27c-linux.zip
+          echo "NDK extracted to: ~/.buildozer/android/platform/android-ndk-r27c"
 
       - name: Build Release AAB
         run: |
