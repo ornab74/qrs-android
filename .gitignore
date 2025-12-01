@@ -1,0 +1,15 @@
+# Buildozer
+.buildozer/
+bin/
+.obj/
+__pycache__/
+*.pyc
+
+# Secrets
+.enc_key
+*.jks
+
+# Temp
+tmp.db
+models/*.gguf
+!models/*.aes
