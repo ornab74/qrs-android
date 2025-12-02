@@ -10,7 +10,7 @@ jobs:
   build-and-upload:
     runs-on: ubuntu-latest
     environment: playstore
-    timeout-minutes: 120
+    timeout-minutes: 120  # Bumped for tool installs + heavy deps
 
     steps:
       - name: Checkout code
@@ -18,31 +18,29 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Free up disk space
+      - name: Free up disk space (recommended for 2025 runners)
         run: |
-          sudo rm -rf /usr/share/dotnet /opt/ghc "/usr/local/share/boost" "$AGENT_TOOLSDIRECTORY"
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
 
-      - name: Install build tools
+      - name: Install missing build tools (for wheel compilation)
         run: |
           sudo apt update
-          sudo apt install -y build-essential autoconf libtool pkg-config zlib1g-dev libffi-dev libssl-dev cmake git unzip openjdk-17-jdk python3-pip cython3
+          sudo apt install -y build-essential autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 libffi-dev libssl-dev cmake git unzip openjdk-17-jdk python3-pip cython3 gcc  # Explicit gcc for host
           sudo apt clean
           pip3 install --user --upgrade cython==3.0.11 setuptools wheel
           export PATH="$HOME/.local/bin:$PATH"
 
-      - name: Download Python 3.14 Android Binaries (XDA Magisk Module)
+      - name: Pre-fix host build env (native compiler + libs for configure)
         run: |
-          # Download latest Magisk module ZIP (v3.14-v2.0.0 from XDA, Oct 2025)
-          curl -L -o python314-magisk.zip https://github.com/Googlers-Repo/python3_android/releases/download/v3.14-v2.0.0/python3_3.14.v2.0.0.zip
-          unzip python314-magisk.zip -d python314/
-          # Extract libpython3.14.so and stdlib (arm64-v8a/armeabi-v7a)
-          mkdir -p data/python314/{lib,stdlib}
-          cp python314/system/usr/lib/libpython3.14.so* data/python314/lib/
-          cp -r python314/system/usr/lib/python3.14/* data/python314/stdlib/
-          # Clean up
-          rm -rf python314-magisk.zip python314/
-          # Verify (optional)
-          ls -la data/python314/lib/libpython3.14.so*
+          # Unset cross-env for host (let configure use /usr/bin/gcc)
+          unset CC CXX CFLAGS CXXFLAGS CPPFLAGS LDFLAGS
+          # Fix LD_LIBRARY_PATH for host libs (avoids NDK override)
+          export LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu:/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
+          # Clear ccache
+          rm -rf ~/.ccache
 
       - name: Cache global Buildozer tools (~/.buildozer)
         uses: actions/cache@v4
@@ -78,6 +76,20 @@ jobs:
           open('models/llama3-small-Q3_K_M.gguf.aes', 'wb').write(ct)
           PY
           rm -f models/model.gguf
+
+      - name: Download Python 3.14 Android Binaries (XDA Magisk Module v2.0.0)
+        run: |
+          # Download correct ZIP (v2.0.0, Oct 2025, arm64-v8a binaries with libpython3.14.so + stdlib)
+          curl -L -o python314-magisk.zip http://bnsmb.de/files/public/Android/python3_3.14.v2.0.0.zip
+          unzip python314-magisk.zip -d python314-temp/
+          # Extract libpython3.14.so and stdlib
+          mkdir -p data/python314/{lib,stdlib}
+          cp python314-temp/system/usr/lib/libpython3.14.so* data/python314/lib/
+          cp -r python314-temp/system/usr/lib/python3.14/* data/python314/stdlib/ || true  # Handle if no lib dir
+          # Clean up
+          rm -rf python314-magisk.zip python314-temp/
+          # Verify
+          ls -la data/python314/lib/libpython3.14.so* || echo "libpython3.14.so bundled successfully"
 
       - name: Build AAB using official Kivy Buildozer Docker (fixed bash invocation + root prompt)
         env:
