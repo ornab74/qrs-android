@@ -9,26 +9,38 @@ source.dir = .
 source.include_exts = py,png,jpg,jpeg,ttf,otf,kv,atlas,gguf,aes,db,txt,md,json,wav
 source.exclude_dirs = .git,.buildozer,bin,__pycache__,.github,.venv
 
-requirements = python3==3.11.9,kivy==2.3.0,kivymd==1.2.0,numpy,pyjnius,android,psutil,httpx,aiosqlite,cryptography==42.0.8,pennylane==0.36.0,pennylane-lightning==0.36.0,llama-cpp-python==0.2.85
-android.pip_install_pre = cryptography==2.9.2,pennylane-lightning==0.36.0
+# Latest cryptography (unpinned = 42.0.8+) + deps
+requirements = python3==3.11.9,kivy==2.3.0,kivymd==1.2.0,numpy,pyjnius,android,psutil,httpx,aiosqlite,cryptography,pennylane==0.36.0,pennylane-lightning==0.36.0,llama-cpp-python==0.2.85
 
+# P4A develop branch: Essential for latest NDK + cryptography extraction
+p4a.branch = develop
+p4a.fork = kivy
+
+# STRICT 64-bit only
+android.archs = arm64-v8a
+
+# LATEST/HIGHER API SETUP (API 35 = Android 15)
+android.ndk_api = 35      # Highest supported; modern toolchain, no legacy warnings
+android.minapi = 24       # Min supported (Android 7.0; 90%+ device coverage)
+android.api = 35          # Target SDK (matches NDK API)
+android.sdk = 35          # SDK version
+android.ndk = 27          # Latest NDK (r27c; full Rust/Clang support for cryptography)
+
+# Output AAB for Play Store
+android.release_artifact = aab
+
+# Permissions & security
+android.permissions = ACCESS_FINE_LOCATION,ACCESS_COARSE_LOCATION,FOREGROUND_SERVICE,FOREGROUND_SERVICE_DATA_SYNC
+android.block_network_permissions = True
+
+# KivyMD + sensor fix
 orientation = portrait
 fullscreen = 0
 presplash.filename = %(source.dir)s/data/presplash.png
 icon.filename = %(source.dir)s/data/icon.png
-
-android.api = 35
-android.minapi = 24
-android.sdk = 35
-android.ndk = 25
-android.release_artifact = aab
-
-android.archs = arm64-v8a
-android.permissions = ACCESS_FINE_LOCATION,ACCESS_COARSE_LOCATION,FOREGROUND_SERVICE,FOREGROUND_SERVICE_DATA_SYNC
-android.block_network_permissions = True
-
 android.add_compile_options = -DSDL_SENSOR_DISABLED=1
-p4a.branch = master
+
+# Misc
 android.accept_sdk_license = True
 android.private_storage = False
 android.allow_backup = False
