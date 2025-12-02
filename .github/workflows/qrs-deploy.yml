@@ -10,7 +10,7 @@ jobs:
   build-and-upload:
     runs-on: ubuntu-latest
     environment: playstore
-    timeout-minutes: 120
+    timeout-minutes: 120  # Critical — your build takes ~60–90 min
 
     steps:
       - name: Checkout code
@@ -58,7 +58,7 @@ jobs:
           PY
           rm -f models/model.gguf
 
-      - name: Build AAB - Working 100% Dec 2025
+      - name: Build AAB - FULL CI FIXES (Dec 2025)
         run: |
           docker run --rm \
             -v "$HOME/.buildozer:/home/user/.buildozer" \
@@ -66,9 +66,14 @@ jobs:
             -w /home/user/hostcwd \
             -e BUILDOZER_WARN_ON_ROOT=0 \
             -e P4A_IGNORE_PATCH_ERRORS=1 \
-            -e P4A_PATCH_FUZZ=3 \
-            kivy/buildozer:latest \
-            /bin/bash -c "buildozer -v android release"
+            -e P4A_PATCH_FUZZ=5 \
+            -e P4A_DEBUG=1 \
+            -e BUILD_MENUCONFIG=0 \
+            ghcr.io/kivy/buildozer:latest \
+            /bin/bash -c "
+              echo y | buildozer android clean || true
+              buildozer -v android release
+            "
 
       - name: Find generated AAB
         id: find_aab
@@ -88,7 +93,7 @@ jobs:
           name: qrs-release-aab
           path: ${{ steps.find_aab.outputs.aab_path }}
 
-      - name: Upload to Google Play Internal
+      - name: Upload to Google Play Internal Testing
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
