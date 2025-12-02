@@ -25,7 +25,7 @@ jobs:
       - name: Install dependencies
         run: |
           yarn install
-          yarn add @callstack/polygen react-native-wasm3
+          yarn add @callstack/polygen react-native-wasm
 
       - name: Compile Python to WASM
         run: npx polygen build python-backend/main.py --output wasm/qrs.wasm
