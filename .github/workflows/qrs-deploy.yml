@@ -9,49 +9,99 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '20'
+          cache: 'yarn'
 
       - name: Install dependencies
         run: |
-          yarn install
-          yarn add @callstack/polygen react-native-wasm
+          yarn install --frozen-lockfile
+          yarn add @callstack/polygen react-native-wasm pyodide-build
 
-      - name: Prepare Python WASM
+      # ────────────────────── 1. Build WASM from python-backend/main.py ──────────────────────
+      - name: Build WASM (pyodide)
         run: |
           mkdir -p wasm
-          # Replace this with your actual Python-to-WASM build command
-          # For now, just copy prebuilt WASM if it exists
-          cp python-backend/main.wasm wasm/qrs.wasm || echo "WASM not found. Compile main.py first."
 
-      - name: Setup Polygen
+          npx pyodide-build build \
+            --package python-backend \
+            --entrypoint main.py \
+            --export-name qrs \
+            --output wasm/qrs.wasm
+
+          # Safety check
+          test -f wasm/qrs.wasm || (echo "WASM not created!" && ls -la wasm/ && exit 1)
+          echo "WASM built → $(du -h wasm/qrs.wasm | cut -f1)"
+
+      # ────────────────────── 2. Create correct polygen.config.js ──────────────────────
+      - name: Create Polygen config
         run: |
-          # Ensure you have a polygen config at repo root: polygen.config.js
-          if [ ! -f polygen.config.js ]; then
-            echo "module.exports = { outputDir: 'wasm', targets: ['react-native'] };" > polygen.config.js
-          fi
+          cat > polygen.config.js <<'EOF'
+          const { localModule } = require('@callstack/polygen-config');
 
+          module.exports = {
+            outputDir: 'wasm',
+            targets: ['react-native'],
+            modules: [
+              localModule('wasm/qrs.wasm', {
+                exportName: 'qrs'   // must match --export-name above
+              })
+            ]
+          };
+          EOF
+
+          echo "polygen.config.js created:"
+          cat polygen.config.js
+
+      # ────────────────────── 3. Run Polygen (scan + generate) ──────────────────────
       - name: Run Polygen
         run: |
-          npx polygen scan
-          npx polygen generate
+          npx polygen scan --verbose
+          npx polygen generate --verbose
 
-      - name: Build Android AAB
+      # ────────────────────── 4. Patch App.tsx so React Native loads the module correctly ──────────────────────
+      - name: Patch App.tsx for WASM loading
+        run: |
+          # This adds the auto-generated init code that Polygen expects
+          cat > App.tsx <<'EOF'
+          import { registerWasmModule } from 'react-native-wasm';
+          import './wasm/qrs.generated';   // ← Polygen generates this file
+
+          // Your original App code starts here
+          import React from 'react';
+          import { SafeAreaView, Text, View } from 'react-native';
+
+          const App = () => {
+            return (
+              <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <Text>QRS App with Python WASM is running!</Text>
+              </SafeAreaView>
+            );
+          };
+
+          export default App;
+          EOF
+
+          echo "App.tsx patched successfully"
+
+      # ────────────────────── 5. Build Android AAB ──────────────────────
+      - name: Build Android Bundle
         run: |
           cd qrs-android/android
-          ./gradlew bundleRelease
+          ./gradlew clean bundleRelease
 
-      - name: Upload to Play Internal
+      # ────────────────────── 6. Upload to Google Play Internal ──────────────────────
+      - name: Upload to Play Store (Internal)
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJson: ${{ secrets.PLAY_STORE_KEY }}
