@@ -10,7 +10,9 @@ source.include_exts = py,png,jpg,jpeg,ttf,otf,kv,atlas,gguf,aes,db,txt,md,json,w
 source.exclude_dirs = .git,.buildozer,bin,__pycache__,.github,.venv
 
 requirements = python3==3.11.9, kivy==2.3.0, https://github.com/kivymd/KivyMD/archive/master.zip, numpy, pyjnius, android, psutil, httpx, aiosqlite, cryptography, pennylane==0.36.0,pennylane-lightning==0.36.0,llama-cpp-python==0.2.85
-android.archs = arm64-v8a
+
+android.archs = armeabi-v7a, arm64-v8a
+
 p4a.branch = develop
 p4a.fork = kivy
 
