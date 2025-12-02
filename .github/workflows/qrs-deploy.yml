@@ -28,7 +28,7 @@ jobs:
       - name: Install missing build tools (for wheel compilation)
         run: |
           sudo apt update
-          sudo apt install -y build-essential autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 libffi-dev libssl-dev cmake git unzip openjdk-17-jdk python3-pip cython3 gcc  # Explicit gcc for host
+          sudo apt install -y build-essential autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo6 libffi-dev libssl-dev cmake git unzip openjdk-17-jdk python3-pip cython3 gcc  # Explicit gcc for host
           sudo apt clean
           pip3 install --user --upgrade cython==3.0.11 setuptools wheel
           export PATH="$HOME/.local/bin:$PATH"
