@@ -4,9 +4,6 @@ on:
   push:
     tags:
       - 'v*'
-    branches:
-      - main
-  workflow_dispatch:
 
 jobs:
   build:
@@ -20,41 +17,19 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 20
 
       - name: Install dependencies
         run: |
           yarn install
-          yarn add @callstack/polygen react-native-wasm pyodide-build
+          yarn add @callstack/polygen react-native-wasm3
 
-      - name: Build Python WASM
-        run: |
-          mkdir -p wasm
-          # Compile main.py to WASM using Pyodide
-          npx pyodide-build python-backend/main.py -o wasm/qrs.wasm
-          if [ ! -f wasm/qrs.wasm ]; then
-            echo "WASM build failed."
-            exit 1
-          fi
-
-      - name: Setup Polygen config
-        run: |
-          echo "module.exports = {
-  outputDir: 'wasm',
-  targets: ['react-native'],
-  scan: {
-    paths: ['wasm/qrs.wasm']
-  }
-};" > polygen.config.js
-
-      - name: Run Polygen
-        run: |
-          npx polygen scan
-          npx polygen generate
+      - name: Compile Python to WASM
+        run: npx polygen build python-backend/main.py --output wasm/qrs.wasm
 
       - name: Build Android AAB
         run: |
-          cd qrs-android/android
+          cd android
           ./gradlew bundleRelease
 
       - name: Upload to Play Internal
@@ -62,5 +37,5 @@ jobs:
         with:
           serviceAccountJson: ${{ secrets.PLAY_STORE_KEY }}
           packageName: com.chaosresonance.qrs
-          releaseFiles: qrs-android/android/app/build/outputs/bundle/release/app-release.aab
+          releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
           track: internal
