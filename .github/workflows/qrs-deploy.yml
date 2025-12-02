@@ -25,21 +25,29 @@ jobs:
       - name: Install dependencies
         run: |
           yarn install
-          yarn add @callstack/polygen react-native-wasm
+          yarn add @callstack/polygen react-native-wasm pyodide-build
 
-      - name: Prepare Python WASM
+      - name: Build Python WASM
         run: |
           mkdir -p wasm
-          # Replace this with your actual Python-to-WASM build command
-          # For now, just copy prebuilt WASM if it exists
-          cp python-backend/main.wasm wasm/qrs.wasm || echo "WASM not found. Compile main.py first."
-
-      - name: Setup Polygen
-        run: |
-          # Ensure you have a polygen config at repo root: polygen.config.js
-          if [ ! -f polygen.config.js ]; then
-            echo "module.exports = { outputDir: 'wasm', targets: ['react-native'] };" > polygen.config.js
+          # Compile main.py to WASM using Pyodide
+          npx pyodide-build python-backend/main.py -o wasm/qrs.wasm
+          if [ ! -f wasm/qrs.wasm ]; then
+            echo "WASM build failed."
+            exit 1
           fi
+
+      - name: Setup Polygen config
+        run: |
+          cat <<EOT > polygen.config.js
+module.exports = {
+  outputDir: "wasm",
+  targets: ["react-native"],
+  scan: {
+    paths: ["wasm/qrs.wasm"]
+  }
+};
+EOT
 
       - name: Run Polygen
         run: |
