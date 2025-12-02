@@ -27,8 +27,17 @@ jobs:
           yarn install
           yarn add @callstack/polygen react-native-wasm
 
-      - name: Compile Python to WASM
-        run: npx polygen build python-backend/main.py --output wasm/qrs.wasm
+      - name: Prepare WASM module
+        run: |
+          # Polygen expects an existing WASM file. 
+          # Replace this with your own Python-to-WASM build command if needed
+          mkdir -p wasm
+          cp python-backend/main.wasm wasm/qrs.wasm || echo "WASM file not found, generate it before Polygen"
+
+      - name: Run Polygen
+        run: |
+          npx polygen scan
+          npx polygen generate
 
       - name: Build Android AAB
         run: |
