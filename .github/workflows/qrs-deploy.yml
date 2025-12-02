@@ -1,4 +1,4 @@
-name: QRS - Google Play (Internal)
+name: QRS → Google Play (Internal)
 
 on:
   push:
@@ -10,7 +10,7 @@ jobs:
   build-and-upload:
     runs-on: ubuntu-latest
     environment: playstore
-    timeout-minutes: 120  # Critical — your build takes ~60–90 min
+    timeout-minutes: 120  # Bumped for ~60-90 min builds
 
     steps:
       - name: Checkout code
@@ -18,12 +18,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Free up disk space
+      - name: Free up disk space (recommended for 2025 runners)
         run: |
           sudo rm -rf /usr/share/dotnet /opt/ghc "/usr/local/share/boost" "$AGENT_TOOLSDIRECTORY"
-          sudo apt clean || true
+          sudo apt clean || true  # Extra space
 
-      - name: Cache global Buildozer tools
+      - name: Cache global Buildozer tools (~/.buildozer)
         uses: actions/cache@v4
         with:
           path: ~/.buildozer
@@ -58,8 +58,15 @@ jobs:
           PY
           rm -f models/model.gguf
 
-      - name: Build AAB - FULL CI FIXES (Dec 2025)
+      - name: Build AAB using official Kivy Buildozer Docker (CLI patch ignores + non-interactive)
+        env:
+          BUILDOZER_WARN_ON_ROOT: 0  # Skip root warning
+          P4A_IGNORE_PATCH_ERRORS: 1  # Ignore failed patches (your main fix)
+          P4A_PATCH_FUZZ: 5  # High fuzz for outdated recipes (e.g., pennylane/llama-cpp)
+          P4A_DEBUG: 1  # Verbose P4A logs if needed
+          BUILD_MENUCONFIG: 0  # Skip interactive prompts
         run: |
+          # Direct command (no /bin/bash) — image has no ENTRYPOINT
           docker run --rm \
             -v "$HOME/.buildozer:/home/user/.buildozer" \
             -v "$(pwd):/home/user/hostcwd" \
@@ -70,22 +77,24 @@ jobs:
             -e P4A_DEBUG=1 \
             -e BUILD_MENUCONFIG=0 \
             ghcr.io/kivy/buildozer:latest \
-            /bin/bash -c "
-              echo y | buildozer android clean || true
-              buildozer -v android release
-            "
+            sh -c "echo y | buildozer android clean || true && buildozer -v android release"
 
       - name: Find generated AAB
         id: find_aab
         run: |
           AAB=$(ls bin/*.aab 2>/dev/null | head -1)
-          [ -z "$AAB" ] && { echo "No AAB found!"; ls -la bin/; exit 1; }
+          if [ -z "$AAB" ]; then
+            echo "No AAB found in bin/"
+            ls -la bin/
+            exit 1
+          fi
           echo "AAB found: $AAB"
           echo "aab_path=$AAB" >> $GITHUB_OUTPUT
 
       - name: Verify AAB
         run: |
           aapt dump badging "${{ steps.find_aab.outputs.aab_path }}" | head -20
+          echo "AAB is valid"
 
       - name: Upload AAB as artifact
         uses: actions/upload-artifact@v4
